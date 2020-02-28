@@ -2,6 +2,7 @@ import os
 import pickle
 import copy
 import torch
+import torch.nn as nn
 import torch.optim as optim
 
 from .device import get_cpu_device
@@ -51,6 +52,7 @@ class trainer:
                         self.model, batch, batch_index, learning_rate
                     )
 
+                cur_batch_model = copy.deepcopy(self.model)
                 if "per_instance_gradient_callback" in kwargs:
                     prev_accumulated_gradient = None
                     instance_inputs, instance_targets, instance_indices = batch
@@ -83,6 +85,27 @@ class trainer:
                                 learning_rate,
                                 real_batch_size,
                             )
+                    inputs = batch[0].to(device)
+                    targets = batch[1].to(device)
+                    outputs = cur_batch_model(inputs)
+                    loss_fun = nn.CrossEntropyLoss(reduction='sum')
+                    loss2 = loss_fun(outputs, targets)
+                    loss2.backward()
+                    test_gradient = model_gradients_to_vector(cur_batch_model)
+                    prev_accumulated_gradient
+                    if not torch.all(
+                        torch.eq(prev_accumulated_gradient, test_gradient)
+                    ):
+                        print(prev_accumulated_gradient)
+                        print(test_gradient)
+                        print(torch.norm(prev_accumulated_gradient-test_gradient,2))
+                        print(
+                            torch.eq(
+                                prev_accumulated_gradient,
+                                test_gradient))
+                        print("aaaaaaaaaaaaaaaa")
+                        raise ValueError("invalid gradient")
+
                 else:
                     inputs = batch[0].to(device)
                     targets = batch[1].to(device)
